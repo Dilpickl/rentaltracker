@@ -1,0 +1,509 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-top: #e8f2ef;
+  --bg-bottom: #f4f0e8;
+  --surface: #ffffff;
+  --ink: #1a2e28;
+  --ink-muted: #5a6e66;
+  --border: #d5e0db;
+  --primary: #0d6b5c;
+  --primary-press: #0a5549;
+  --primary-soft: #d8f0ea;
+  --paid: #1a7f4b;
+  --paid-bg: #e4f6ec;
+  --due: #b7791f;
+  --due-bg: #fef3d8;
+  --overdue: #c0392b;
+  --overdue-bg: #fde8e6;
+  --upcoming: #4a6570;
+  --upcoming-bg: #e8eef1;
+  --danger: #a12d22;
+  --shadow: 0 8px 24px rgba(26, 46, 40, 0.08);
+  --radius: 16px;
+  --tap: 56px;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.4;
+  font-weight: 400;
+  color: var(--ink);
+  background: linear-gradient(165deg, var(--bg-top) 0%, var(--bg-bottom) 55%, #efe8dc 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.screen__header {
+  padding: 20px 0 12px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(232, 242, 239, 0.96) 70%, rgba(232, 242, 239, 0));
+}
+
+.screen__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  margin-bottom: 8px;
+}
+
+.brand {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--primary);
+}
+
+.screen__title {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.screen__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.back-link,
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.summary-line {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 1.05rem;
+}
+
+.summary-line strong {
+  display: inline;
+  font-weight: 700;
+}
+
+.muted {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 1.05rem;
+}
+
+.banner {
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+}
+
+.banner--error {
+  background: var(--overdue-bg);
+  color: var(--overdue);
+}
+
+.banner--warn {
+  background: var(--due-bg);
+  color: #7a5410;
+}
+
+.banner--ok {
+  background: var(--paid-bg);
+  color: var(--paid);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 18px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--ink-muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn--primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn--primary:hover {
+  background: var(--primary-press);
+}
+
+.btn--compact {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 1rem;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--xl {
+  min-height: 64px;
+  font-size: 1.3rem;
+  border-radius: 16px;
+}
+
+.btn--danger-ghost {
+  background: transparent;
+  color: var(--danger);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.tenant-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tenant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 84px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.tenant-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tenant-row__name {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.tenant-row__meta {
+  font-size: 0.98rem;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tenant-row__balance {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-badge__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-badge--paid {
+  background: var(--paid-bg);
+  color: var(--paid);
+}
+
+.status-badge--due_soon {
+  background: var(--due-bg);
+  color: var(--due);
+}
+
+.status-badge--overdue {
+  background: var(--overdue-bg);
+  color: var(--overdue);
+}
+
+.status-badge--upcoming {
+  background: var(--upcoming-bg);
+  color: var(--upcoming);
+}
+
+.detail-card {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.detail-card__unit {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: var(--ink-muted);
+}
+
+.detail-card__rent {
+  margin: 0 0 4px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.detail-card__due {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  color: var(--ink-muted);
+}
+
+.detail-card__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-card__remaining {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.section-title {
+  margin: 8px 0 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.history-row > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.history-row__date {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.history-row__amount {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.pill {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.pill--paid {
+  background: var(--paid-bg);
+  color: var(--paid);
+}
+
+.pill--partial {
+  background: var(--due-bg);
+  color: var(--due);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field__label {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.field__hint {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+}
+
+.field__input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1.15rem;
+}
+
+.field__input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.field__money {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.field__money .field__input {
+  flex: 1;
+}
+
+.pay-tenant {
+  padding: 16px;
+  background: var(--primary-soft);
+  border-radius: var(--radius);
+}
+
+.pay-tenant__name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.pay-tenant__meta,
+.pay-tenant__remaining {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  color: var(--ink-muted);
+}
+
+.pay-tenant__remaining {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (min-width: 640px) {
+  .app-shell {
+    padding-top: 12px;
+  }
+
+  .screen__title {
+    font-size: 2.1rem;
+  }
+}
