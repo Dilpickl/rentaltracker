@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { LoadingBlock } from '../components/LoadingBlock'
 import { Screen } from '../components/Screen'
 import { formatMoney, todayISODate } from '../lib/dates'
 import { getTenantStatus, paymentLabel } from '../lib/status'
@@ -8,13 +9,15 @@ import type { TenantWithPayments } from '../lib/useTenantsData'
 
 type Props = {
   tenants: TenantWithPayments[]
+  loading: boolean
   onChanged: () => Promise<void>
 }
 
-export function RecordPaymentScreen({ tenants, onChanged }: Props) {
-  const { id } = useParams()
+export function RecordPaymentScreen({ tenants, loading, onChanged }: Props) {
+  const { id, paymentId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const isEdit = Boolean(paymentId)
 
   const preselectedId = id ?? searchParams.get('tenant') ?? ''
   const [tenantId, setTenantId] = useState(preselectedId)
@@ -23,20 +26,36 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [amountTouched, setAmountTouched] = useState(false)
+  const [hydratedEdit, setHydratedEdit] = useState(false)
 
+  const activeTenants = tenants.filter((t) => !t.archived)
   const tenant = tenants.find((t) => t.id === tenantId)
-  const status = tenant ? getTenantStatus(tenant, tenant.payments) : null
+  const existingPayment = tenant?.payments.find((p) => p.id === paymentId)
+
+  const status = tenant
+    ? getTenantStatus(tenant, tenant.payments, new Date(), {
+        excludePaymentId: paymentId,
+      })
+    : null
 
   useEffect(() => {
     if (preselectedId) setTenantId(preselectedId)
   }, [preselectedId])
 
   useEffect(() => {
-    if (!tenant || amountTouched) return
+    if (!isEdit || !existingPayment || hydratedEdit) return
+    setAmount(String(existingPayment.amount))
+    setPaidOn(existingPayment.paid_on)
+    setAmountTouched(true)
+    setHydratedEdit(true)
+  }, [existingPayment, hydratedEdit, isEdit])
+
+  useEffect(() => {
+    if (isEdit || !tenant || amountTouched) return
     const remaining = getTenantStatus(tenant, tenant.payments).remaining
     const defaultAmount = remaining > 0 ? remaining : tenant.monthly_rent
     setAmount(String(defaultAmount))
-  }, [tenant, amountTouched])
+  }, [tenant, amountTouched, isEdit])
 
   const amountNum = Number(amount)
   const preview = useMemo(() => {
@@ -73,17 +92,34 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
     const statusLabel = paymentLabel(amountNum, tenant.monthly_rent)
     setSaving(true)
 
-    const { error: insertError } = await supabase.from('payments').insert({
-      tenant_id: tenantId,
-      amount: amountNum,
-      paid_on: paidOn,
-      status: statusLabel,
-    })
+    if (isEdit && paymentId) {
+      const { error: updateError } = await supabase
+        .from('payments')
+        .update({
+          amount: amountNum,
+          paid_on: paidOn,
+          status: statusLabel,
+        })
+        .eq('id', paymentId)
 
-    setSaving(false)
-    if (insertError) {
-      setError(insertError.message)
-      return
+      setSaving(false)
+      if (updateError) {
+        setError(updateError.message)
+        return
+      }
+    } else {
+      const { error: insertError } = await supabase.from('payments').insert({
+        tenant_id: tenantId,
+        amount: amountNum,
+        paid_on: paidOn,
+        status: statusLabel,
+      })
+
+      setSaving(false)
+      if (insertError) {
+        setError(insertError.message)
+        return
+      }
     }
 
     await onChanged()
@@ -91,11 +127,32 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
   }
 
   const backTo = id ? `/tenants/${id}` : '/'
-  const needsTenantPicker = !id
+  const needsTenantPicker = !id && !isEdit
+
+  if (loading && tenants.length === 0) {
+    return (
+      <Screen title={isEdit ? 'Edit payment' : 'Record payment'} backTo={backTo}>
+        <LoadingBlock />
+      </Screen>
+    )
+  }
+
+  if (isEdit && !loading && !existingPayment) {
+    return (
+      <Screen title="Edit payment" backTo={backTo}>
+        <p className="muted">That payment was removed or does not exist.</p>
+        <Link to={backTo} className="btn btn--primary btn--block">
+          Back
+        </Link>
+      </Screen>
+    )
+  }
+
+  const selectable = activeTenants.length > 0 ? activeTenants : tenants
 
   return (
-    <Screen title="Record payment" backTo={backTo}>
-      {tenants.length === 0 ? (
+    <Screen title={isEdit ? 'Edit payment' : 'Record payment'} backTo={backTo}>
+      {selectable.length === 0 ? (
         <div className="empty-state">
           <p>Add a tenant before recording a payment.</p>
           <Link to="/tenants/new" className="btn btn--primary btn--block">
@@ -103,7 +160,7 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
           </Link>
         </div>
       ) : (
-        <form className="form" onSubmit={handleSubmit}>
+        <form className="form" onSubmit={(e) => void handleSubmit(e)}>
           {needsTenantPicker ? (
             <label className="field">
               <span className="field__label">Tenant</span>
@@ -117,7 +174,7 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
                 required
               >
                 <option value="">Select tenant…</option>
-                {tenants.map((t) => (
+                {selectable.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name} · {t.unit_address}
                   </option>
@@ -133,7 +190,7 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
                 </p>
                 {status && status.remaining > 0 && (
                   <p className="pay-tenant__remaining">
-                    Remaining this month: {formatMoney(status.remaining)}
+                    Remaining this period: {formatMoney(status.remaining)}
                   </p>
                 )}
               </div>
@@ -184,7 +241,7 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
                 </>
               ) : preview.label === 'Partial' ? (
                 <>
-                  This finishes what's owed this month (saved as{' '}
+                  This finishes what's owed this period (saved as{' '}
                   <strong>Partial</strong> because it's under the full rent).
                 </>
               ) : (
@@ -198,7 +255,7 @@ export function RecordPaymentScreen({ tenants, onChanged }: Props) {
           {error && <div className="banner banner--error">{error}</div>}
 
           <button type="submit" className="btn btn--primary btn--block btn--xl" disabled={saving}>
-            {saving ? 'Saving…' : 'Save payment'}
+            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save payment'}
           </button>
         </form>
       )}

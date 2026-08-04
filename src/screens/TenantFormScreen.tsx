@@ -74,7 +74,7 @@ export function TenantFormScreen({ tenants, onChanged }: Props) {
 
     const { data, error: insertError } = await supabase
       .from('tenants')
-      .insert(payload)
+      .insert({ ...payload, archived: false })
       .select('id')
       .single()
 

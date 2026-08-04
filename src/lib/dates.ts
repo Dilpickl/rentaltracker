@@ -10,11 +10,7 @@ export function formatMoney(amount: number): string {
 
 /** YYYY-MM-DD for today in local time. */
 export function todayISODate(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return toISODate(new Date())
 }
 
 /** Parse YYYY-MM-DD as a local calendar date (avoids UTC shift). */
@@ -31,8 +27,8 @@ export function formatShortDate(iso: string): string {
   })
 }
 
-export function startOfMonth(date = new Date()): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1)
+export function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
 export function endOfMonth(date = new Date()): Date {
@@ -46,18 +42,23 @@ export function toISODate(date: Date): string {
   return `${y}-${m}-${day}`
 }
 
-/** Due date for the current calendar month, clamped to valid days. */
-export function dueDateThisMonth(dueDay: number, ref = new Date()): Date {
-  const lastDay = endOfMonth(ref).getDate()
+export function dayAfter(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+}
+
+/** Due date for a given year/month, clamped to valid days (e.g. 31 → 28/29 in Feb). */
+export function dueDateInMonth(dueDay: number, year: number, monthIndex: number): Date {
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate()
   const day = Math.min(Math.max(1, dueDay), lastDay)
-  return new Date(ref.getFullYear(), ref.getMonth(), day)
+  return new Date(year, monthIndex, day)
+}
+
+/** Due date for the calendar month of `ref`. */
+export function dueDateThisMonth(dueDay: number, ref = new Date()): Date {
+  return dueDateInMonth(dueDay, ref.getFullYear(), ref.getMonth())
 }
 
 export function daysBetween(a: Date, b: Date): number {
   const ms = startOfDay(b).getTime() - startOfDay(a).getTime()
   return Math.round(ms / (1000 * 60 * 60 * 24))
-}
-
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }

@@ -8,6 +8,7 @@ create table if not exists public.tenants (
   unit_address text not null,
   monthly_rent numeric(10, 2) not null check (monthly_rent > 0),
   due_day integer not null check (due_day >= 1 and due_day <= 31),
+  archived boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -23,6 +24,7 @@ create table if not exists public.payments (
 
 create index if not exists payments_tenant_id_idx on public.payments (tenant_id);
 create index if not exists payments_paid_on_idx on public.payments (paid_on);
+create index if not exists tenants_archived_idx on public.tenants (archived);
 
 -- Single-user v1: permissive RLS so the anon key can read/write everything.
 -- Do not use this pattern if the project URL/key will be shared publicly beyond yourself.
@@ -44,3 +46,7 @@ create policy "anon_all_payments"
   to anon, authenticated
   using (true)
   with check (true);
+
+-- --- Migration for existing projects (safe to re-run) ---
+alter table public.tenants
+  add column if not exists archived boolean not null default false;

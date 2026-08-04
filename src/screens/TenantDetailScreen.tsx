@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { LoadingBlock } from '../components/LoadingBlock'
 import { Screen } from '../components/Screen'
 import { StatusBadge } from '../components/StatusBadge'
 import { formatMoney, formatShortDate, toISODate } from '../lib/dates'
 import { getTenantStatus } from '../lib/status'
 import { supabase } from '../lib/supabase'
+import type { Payment } from '../types'
 import type { TenantWithPayments } from '../lib/useTenantsData'
 
 type Props = {
@@ -16,11 +19,13 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
   const { id } = useParams()
   const navigate = useNavigate()
   const tenant = tenants.find((t) => t.id === id)
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   if (loading && !tenant) {
     return (
       <Screen title="Tenant" backTo="/">
-        <p className="muted">Loading…</p>
+        <LoadingBlock />
       </Screen>
     )
   }
@@ -38,51 +43,140 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
 
   const status = getTenantStatus(tenant, tenant.payments)
   const history = [...tenant.payments].sort((a, b) => b.paid_on.localeCompare(a.paid_on))
+  const backTo = tenant.archived ? '/archived' : '/'
+  const backLabel = tenant.archived ? 'Archived' : 'Home'
 
-  async function handleDelete() {
-    if (!window.confirm(`Remove ${tenant!.name}? This also deletes their payment history.`)) {
+  async function handleArchive() {
+    if (
+      !window.confirm(
+        `Mark ${tenant!.name} as moved out?\n\nThey’ll leave the home list, but their payment history will be kept.`,
+      )
+    ) {
       return
     }
-    const { error } = await supabase.from('tenants').delete().eq('id', tenant!.id)
+
+    setBusy(true)
+    setActionError(null)
+    const { error } = await supabase
+      .from('tenants')
+      .update({ archived: true })
+      .eq('id', tenant!.id)
+    setBusy(false)
+
     if (error) {
-      window.alert(error.message)
+      setActionError(error.message)
       return
     }
+
     await onChanged()
-    navigate('/')
+    navigate('/archived')
+  }
+
+  async function handleRestore() {
+    setBusy(true)
+    setActionError(null)
+    const { error } = await supabase
+      .from('tenants')
+      .update({ archived: false })
+      .eq('id', tenant!.id)
+    setBusy(false)
+
+    if (error) {
+      setActionError(error.message)
+      return
+    }
+
+    await onChanged()
+    navigate(`/tenants/${tenant!.id}`)
+  }
+
+  async function handleDeleteTenant() {
+    if (
+      !window.confirm(
+        `Delete ${tenant!.name} forever?\n\nThis also deletes their payment history. Prefer “Mark as Moved Out” if you want to keep records.`,
+      )
+    ) {
+      return
+    }
+
+    setBusy(true)
+    setActionError(null)
+    const { error } = await supabase.from('tenants').delete().eq('id', tenant!.id)
+    setBusy(false)
+
+    if (error) {
+      setActionError(error.message)
+      return
+    }
+
+    await onChanged()
+    navigate(tenant!.archived ? '/archived' : '/')
+  }
+
+  async function handleDeletePayment(payment: Payment) {
+    if (
+      !window.confirm(
+        `Delete this payment of ${formatMoney(payment.amount)} on ${formatShortDate(payment.paid_on)}?\n\nThis cannot be undone.`,
+      )
+    ) {
+      return
+    }
+
+    setBusy(true)
+    setActionError(null)
+    const { error } = await supabase.from('payments').delete().eq('id', payment.id)
+    setBusy(false)
+
+    if (error) {
+      setActionError(error.message)
+      return
+    }
+
+    await onChanged()
   }
 
   return (
     <Screen
       title={tenant.name}
-      backTo="/"
-      backLabel="Home"
+      backTo={backTo}
+      backLabel={backLabel}
       action={
-        <Link to={`/tenants/${tenant.id}/edit`} className="text-link">
-          Edit
-        </Link>
+        !tenant.archived ? (
+          <Link to={`/tenants/${tenant.id}/edit`} className="text-link">
+            Edit
+          </Link>
+        ) : undefined
       }
     >
+      {tenant.archived && (
+        <div className="banner banner--warn">This tenant has moved out (archived).</div>
+      )}
+
       <div className="detail-card">
         <p className="detail-card__unit">{tenant.unit_address}</p>
         <p className="detail-card__rent">{formatMoney(tenant.monthly_rent)} / month</p>
         <p className="detail-card__due">Due on day {tenant.due_day} each month</p>
-        <div className="detail-card__status">
-          <StatusBadge kind={status.kind} />
-          {status.kind !== 'paid' && (
-            <span className="detail-card__remaining">
-              {formatMoney(status.remaining)} left · Due {formatShortDate(toISODate(status.dueDate))}
-            </span>
-          )}
-        </div>
+        {!tenant.archived && (
+          <div className="detail-card__status">
+            <StatusBadge kind={status.kind} />
+            {status.kind !== 'paid' && (
+              <span className="detail-card__remaining">
+                {formatMoney(status.remaining)} left · Due{' '}
+                {formatShortDate(toISODate(status.dueDate))}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      <Link
-        to={`/tenants/${tenant.id}/pay`}
-        className="btn btn--primary btn--block btn--xl"
-      >
-        Mark as Paid
-      </Link>
+      {!tenant.archived && (
+        <Link
+          to={`/tenants/${tenant.id}/pay`}
+          className="btn btn--primary btn--block btn--xl"
+        >
+          Mark as Paid
+        </Link>
+      )}
 
       <section className="history">
         <h2 className="section-title">Payment history</h2>
@@ -91,22 +185,67 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
         ) : (
           <ul className="history-list">
             {history.map((p) => (
-              <li key={p.id} className="history-row">
-                <div>
-                  <span className="history-row__date">{formatShortDate(p.paid_on)}</span>
-                  <span className={`pill pill--${p.status === 'Paid' ? 'paid' : 'partial'}`}>
-                    {p.status}
-                  </span>
+              <li key={p.id} className="history-row history-row--actions">
+                <div className="history-row__info">
+                  <div className="history-row__top">
+                    <span className="history-row__date">{formatShortDate(p.paid_on)}</span>
+                    <span className={`pill pill--${p.status === 'Paid' ? 'paid' : 'partial'}`}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <span className="history-row__amount">{formatMoney(p.amount)}</span>
                 </div>
-                <span className="history-row__amount">{formatMoney(p.amount)}</span>
+                <div className="history-row__buttons">
+                  <Link
+                    to={`/tenants/${tenant.id}/payments/${p.id}`}
+                    className="btn btn--secondary btn--compact"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn--danger-outline btn--compact"
+                    disabled={busy}
+                    onClick={() => void handleDeletePayment(p)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <button type="button" className="btn btn--danger-ghost btn--block" onClick={handleDelete}>
-        Remove tenant
+      {actionError && <div className="banner banner--error">{actionError}</div>}
+
+      {tenant.archived ? (
+        <button
+          type="button"
+          className="btn btn--primary btn--block"
+          disabled={busy}
+          onClick={() => void handleRestore()}
+        >
+          Move back to active
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn btn--secondary btn--block"
+          disabled={busy}
+          onClick={() => void handleArchive()}
+        >
+          Mark as Moved Out
+        </button>
+      )}
+
+      <button
+        type="button"
+        className="btn btn--danger-ghost btn--block"
+        disabled={busy}
+        onClick={() => void handleDeleteTenant()}
+      >
+        Delete tenant forever
       </button>
     </Screen>
   )

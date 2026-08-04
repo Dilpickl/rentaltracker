@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useTenantsData } from './lib/useTenantsData'
+import { ArchivedTenantsScreen } from './screens/ArchivedTenantsScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RecordPaymentScreen } from './screens/RecordPaymentScreen'
 import { TenantDetailScreen } from './screens/TenantDetailScreen'
@@ -14,7 +15,18 @@ export default function App() {
         <Routes>
           <Route
             path="/"
-            element={<HomeScreen tenants={tenants} loading={loading} error={error} />}
+            element={
+              <HomeScreen
+                tenants={tenants}
+                loading={loading}
+                error={error}
+                onRetry={() => void refresh()}
+              />
+            }
+          />
+          <Route
+            path="/archived"
+            element={<ArchivedTenantsScreen tenants={tenants} loading={loading} />}
           />
           <Route
             path="/tenants/new"
@@ -32,11 +44,33 @@ export default function App() {
           />
           <Route
             path="/tenants/:id/pay"
-            element={<RecordPaymentScreen tenants={tenants} onChanged={refresh} />}
+            element={
+              <RecordPaymentScreen
+                tenants={tenants}
+                loading={loading}
+                onChanged={refresh}
+              />
+            }
+          />
+          <Route
+            path="/tenants/:id/payments/:paymentId"
+            element={
+              <RecordPaymentScreen
+                tenants={tenants}
+                loading={loading}
+                onChanged={refresh}
+              />
+            }
           />
           <Route
             path="/pay"
-            element={<RecordPaymentScreen tenants={tenants} onChanged={refresh} />}
+            element={
+              <RecordPaymentScreen
+                tenants={tenants}
+                loading={loading}
+                onChanged={refresh}
+              />
+            }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

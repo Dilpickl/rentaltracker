@@ -4,6 +4,7 @@ export type Tenant = {
   unit_address: string
   monthly_rent: number
   due_day: number
+  archived: boolean
   created_at: string
 }
 
@@ -23,10 +24,20 @@ export const DUE_SOON_DAYS = 5
 
 export type TenantStatusKind = 'paid' | 'due_soon' | 'overdue' | 'upcoming'
 
+export type BillingPeriod = {
+  /** Inclusive start (day after previous due date). */
+  start: Date
+  /** Due date for this period. */
+  due: Date
+  /** Exclusive end (day after due date) — payments on/after this belong to the next period. */
+  endExclusive: Date
+}
+
 export type TenantStatus = {
   kind: TenantStatusKind
   label: string
-  paidThisMonth: number
+  paidThisPeriod: number
   remaining: number
   dueDate: Date
+  period: BillingPeriod
 }

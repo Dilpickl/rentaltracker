@@ -49,16 +49,25 @@ Open the URL Vite prints (usually `http://localhost:5173`) on your phone or brow
 
 ## Status logic
 
+Billing periods are anchored to each tenant’s **due day**, not just the calendar month name:
+
+- A period runs from the day after the previous due date through the due date
+- Payments in that window count toward that period only
+- After the due date, unpaid tenants stay **Overdue** until the next due date — then the app rolls forward automatically
+- A payment from a previous period does **not** keep them “Paid” in the new period
+
 | Badge | Meaning |
 | --- | --- |
-| **Paid** (green) | Full monthly rent recorded for the current calendar month |
+| **Paid** (green) | Full rent recorded for the current billing period |
 | **Due soon** (yellow) | Not fully paid, and the due date is within the next **5 days** |
-| **Overdue** (red) | Due date has passed with no full payment |
+| **Overdue** (red) | Due date has passed with no full payment for this period |
 | **Upcoming** (slate) | Not fully paid, but due date is more than 5 days away |
 
-Partial payments reduce the remaining balance. Status stays Due soon / Overdue / Upcoming until the month is fully covered.
+Partial payments reduce the remaining balance. Status stays Due soon / Overdue / Upcoming until the period is fully covered.
 
 To change the “due soon” window, edit `DUE_SOON_DAYS` in [`src/types.ts`](src/types.ts).
+
+If you already created the tables earlier, re-run the bottom **Migration** section of [`supabase/schema.sql`](supabase/schema.sql) to add the `archived` column.
 
 ## Deploy to Vercel
 
