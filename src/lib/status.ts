@@ -1,7 +1,5 @@
 import {
-  dayAfter,
   daysBetween,
-  dueDateInMonth,
   dueDateThisMonth,
   parseLocalDate,
   startOfDay,
@@ -15,53 +13,29 @@ import {
   type TenantStatus,
 } from '../types'
 
-/** Period tied to a specific due date: (prevDue, due] as [dayAfter(prevDue), dayAfter(due)). */
-export function getPeriodForDueDate(dueDay: number, due: Date): BillingPeriod {
-  const prev = new Date(due.getFullYear(), due.getMonth() - 1, 1)
-  const prevDue = dueDateInMonth(dueDay, prev.getFullYear(), prev.getMonth())
-  return {
-    start: dayAfter(prevDue),
-    due: startOfDay(due),
-    endExclusive: dayAfter(due),
-  }
-}
-
 /**
- * Active billing period for status / "collected this month".
- *
- * Periods tile by due day: after the due date, a new period starts the next day.
- * If this month's period is unpaid, we keep showing it as overdue until the next
- * due date arrives — then we roll forward automatically (previous payments no
- * longer count toward the new period).
+ * Active period is always the current calendar month's due date.
+ * Payments count if dated in that same calendar month — including partials
+ * paid after the due day — so remaining balance updates correctly.
+ * When the calendar month rolls, previous-month payments no longer count.
  */
 export function getActiveBillingPeriod(
   dueDay: number,
-  monthlyRent: number,
-  payments: Payment[],
+  _monthlyRent: number,
+  _payments: Payment[],
   ref = new Date(),
 ): BillingPeriod {
-  const today = startOfDay(ref)
-  const dueThis = dueDateThisMonth(dueDay, ref)
-  const nextMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 1)
-  const dueNext = dueDateInMonth(dueDay, nextMonth.getFullYear(), nextMonth.getMonth())
-
-  const thisPeriod = getPeriodForDueDate(dueDay, dueThis)
-  const nextPeriod = getPeriodForDueDate(dueDay, dueNext)
-
-  // Still inside this month's period window (through the due date).
-  if (today < thisPeriod.endExclusive) {
-    return thisPeriod
+  const due = dueDateThisMonth(dueDay, ref)
+  const monthStart = new Date(ref.getFullYear(), ref.getMonth(), 1)
+  const nextMonthStart = new Date(ref.getFullYear(), ref.getMonth() + 1, 1)
+  return {
+    start: monthStart,
+    due: startOfDay(due),
+    endExclusive: nextMonthStart,
   }
-
-  // Past due: stay on this period while unpaid, until the next due date.
-  const paid = paidAmountInPeriod(payments, thisPeriod)
-  if (paid < monthlyRent && today < startOfDay(dueNext)) {
-    return thisPeriod
-  }
-
-  return nextPeriod
 }
 
+/** Payment counts toward a period when it falls in that period's calendar month. */
 export function isPaymentInPeriod(paidOn: string, period: BillingPeriod): boolean {
   const date = startOfDay(parseLocalDate(paidOn))
   return date >= period.start && date < period.endExclusive

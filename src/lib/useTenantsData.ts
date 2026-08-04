@@ -45,7 +45,13 @@ export function useTenantsData() {
       return
     }
 
-    setState((s) => ({ ...s, loading: true, error: null }))
+    // Only block the UI on the first load — keep showing current data while refreshing
+    // so remaining balances don't disappear after recording a payment.
+    setState((s) => ({
+      ...s,
+      loading: s.tenants.length === 0,
+      error: null,
+    }))
 
     try {
       const { data: tenants, error: tenantsError } = await supabase
@@ -54,7 +60,11 @@ export function useTenantsData() {
         .order('name', { ascending: true })
 
       if (tenantsError) {
-        setState({ tenants: [], loading: false, error: friendlyError(tenantsError.message) })
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: friendlyError(tenantsError.message),
+        }))
         return
       }
 
@@ -64,7 +74,11 @@ export function useTenantsData() {
         .order('paid_on', { ascending: false })
 
       if (paymentsError) {
-        setState({ tenants: [], loading: false, error: friendlyError(paymentsError.message) })
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: friendlyError(paymentsError.message),
+        }))
         return
       }
 
@@ -85,7 +99,11 @@ export function useTenantsData() {
       setState({ tenants: merged, loading: false, error: null })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      setState({ tenants: [], loading: false, error: friendlyError(message) })
+      setState((s) => ({
+        ...s,
+        loading: false,
+        error: friendlyError(message),
+      }))
     }
   }, [])
 
