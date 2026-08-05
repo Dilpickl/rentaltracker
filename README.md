@@ -67,7 +67,7 @@ Partial payments reduce the remaining balance shown on the home and tenant scree
 
 To change the “due soon” window, edit `DUE_SOON_DAYS` in [`src/types.ts`](src/types.ts).
 
-If you already created the tables earlier, re-run the bottom **Migration** section of [`supabase/schema.sql`](supabase/schema.sql) to add the `archived` column and the `expenses` table (it also reloads the PostgREST schema cache).
+If you already created the tables earlier, re-run the full [`supabase/schema.sql`](supabase/schema.sql) script — it is idempotent and will add `archived`, create `expenses`, and reload the PostgREST schema cache.
 
 ## Deploy to Vercel
 

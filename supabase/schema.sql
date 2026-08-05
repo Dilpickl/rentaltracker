@@ -1,5 +1,6 @@
 -- Rent Tracker schema
 -- Run this in the Supabase SQL Editor (Dashboard → SQL → New query)
+-- Safe to re-run on existing projects.
 
 -- Tenants / units
 create table if not exists public.tenants (
@@ -11,6 +12,11 @@ create table if not exists public.tenants (
   archived boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Existing projects may already have tenants without `archived`.
+-- Add it before any index that references the column.
+alter table public.tenants
+  add column if not exists archived boolean not null default false;
 
 -- Payments linked to tenants
 create table if not exists public.payments (
@@ -59,32 +65,6 @@ create policy "anon_all_payments"
   to anon, authenticated
   using (true)
   with check (true);
-
-drop policy if exists "anon_all_expenses" on public.expenses;
-create policy "anon_all_expenses"
-  on public.expenses
-  for all
-  to anon, authenticated
-  using (true)
-  with check (true);
-
--- --- Migration for existing projects (safe to re-run) ---
-alter table public.tenants
-  add column if not exists archived boolean not null default false;
-
-create table if not exists public.expenses (
-  id uuid primary key default gen_random_uuid(),
-  tenant_id uuid not null references public.tenants (id) on delete cascade,
-  amount numeric(10, 2) not null check (amount > 0),
-  description text not null,
-  incurred_on date not null default current_date,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists expenses_tenant_id_idx on public.expenses (tenant_id);
-create index if not exists expenses_incurred_on_idx on public.expenses (incurred_on);
-
-alter table public.expenses enable row level security;
 
 drop policy if exists "anon_all_expenses" on public.expenses;
 create policy "anon_all_expenses"
