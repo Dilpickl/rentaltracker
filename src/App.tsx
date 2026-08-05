@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useTenantsData } from './lib/useTenantsData'
 import { ArchivedTenantsScreen } from './screens/ArchivedTenantsScreen'
+import { ExpenseFormScreen } from './screens/ExpenseFormScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { RecordPaymentScreen } from './screens/RecordPaymentScreen'
 import { TenantDetailScreen } from './screens/TenantDetailScreen'
@@ -60,6 +61,18 @@ export default function App() {
                 loading={loading}
                 onChanged={refresh}
               />
+            }
+          />
+          <Route
+            path="/tenants/:id/expenses/new"
+            element={
+              <ExpenseFormScreen tenants={tenants} loading={loading} onChanged={refresh} />
+            }
+          />
+          <Route
+            path="/tenants/:id/expenses/:expenseId"
+            element={
+              <ExpenseFormScreen tenants={tenants} loading={loading} onChanged={refresh} />
             }
           />
           <Route

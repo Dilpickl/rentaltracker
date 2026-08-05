@@ -9,6 +9,14 @@ type Props = {
   onChanged: () => Promise<void>
 }
 
+function friendlySaveError(message: string): string {
+  const lower = message.toLowerCase()
+  if (lower.includes('archived') || lower.includes('schema cache')) {
+    return "Couldn't save. Run the latest schema SQL in Supabase (adds the archived column), then retry."
+  }
+  return message
+}
+
 export function TenantFormScreen({ tenants, onChanged }: Props) {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -53,6 +61,8 @@ export function TenantFormScreen({ tenants, onChanged }: Props) {
 
     setSaving(true)
 
+    // Do not send `archived` on insert — the DB default is false. Explicitly
+    // including it fails on older projects that haven't run the migration yet.
     const payload = {
       name: name.trim(),
       unit_address: unitAddress.trim(),
@@ -64,7 +74,7 @@ export function TenantFormScreen({ tenants, onChanged }: Props) {
       const { error: updateError } = await supabase.from('tenants').update(payload).eq('id', id)
       setSaving(false)
       if (updateError) {
-        setError(updateError.message)
+        setError(friendlySaveError(updateError.message))
         return
       }
       await onChanged()
@@ -74,13 +84,13 @@ export function TenantFormScreen({ tenants, onChanged }: Props) {
 
     const { data, error: insertError } = await supabase
       .from('tenants')
-      .insert({ ...payload, archived: false })
+      .insert(payload)
       .select('id')
       .single()
 
     setSaving(false)
     if (insertError) {
-      setError(insertError.message)
+      setError(friendlySaveError(insertError.message))
       return
     }
 

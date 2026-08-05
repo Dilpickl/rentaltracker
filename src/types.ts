@@ -17,6 +17,15 @@ export type Payment = {
   created_at: string
 }
 
+export type Expense = {
+  id: string
+  tenant_id: string
+  amount: number
+  description: string
+  incurred_on: string
+  created_at: string
+}
+
 export type PaymentStatus = 'Paid' | 'Partial'
 
 /** Adjust how many days before the due date counts as "Due soon". */

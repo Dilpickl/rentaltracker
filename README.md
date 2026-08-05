@@ -9,6 +9,7 @@ Built with React (Vite) and Supabase. Designed to be saved to a phone home scree
 - Home list of tenants with green / yellow / red status badges
 - Monthly collection summary: collected vs expected
 - Tenant detail with **Mark as Paid** and payment history
+- Per-tenant expenses (repairs, fees, etc.) with amount, description, and date
 - Add / edit tenant (name, unit, rent, due day)
 - Record payment (amount + date; auto **Partial** if under full rent)
 - No login — single-user app using the Supabase anon key
@@ -66,7 +67,7 @@ Partial payments reduce the remaining balance shown on the home and tenant scree
 
 To change the “due soon” window, edit `DUE_SOON_DAYS` in [`src/types.ts`](src/types.ts).
 
-If you already created the tables earlier, re-run the bottom **Migration** section of [`supabase/schema.sql`](supabase/schema.sql) to add the `archived` column.
+If you already created the tables earlier, re-run the bottom **Migration** section of [`supabase/schema.sql`](supabase/schema.sql) to add the `archived` column and the `expenses` table (it also reloads the PostgREST schema cache).
 
 ## Deploy to Vercel
 
@@ -93,7 +94,7 @@ That means anyone who has your Supabase URL + anon key can read and write your d
 
 ```
 src/
-  screens/          Home, tenant detail, add/edit, record payment
+  screens/          Home, tenant detail, add/edit, record payment, expenses
   components/       Shared UI (screen chrome, status badge)
   lib/              Supabase client, status math, data hook
 supabase/

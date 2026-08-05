@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured, supabase } from './supabase'
-import type { Payment, Tenant } from '../types'
+import type { Expense, Payment, Tenant } from '../types'
 
-export type TenantWithPayments = Tenant & { payments: Payment[] }
+export type TenantWithPayments = Tenant & {
+  payments: Payment[]
+  expenses: Expense[]
+}
 
 type LoadState = {
   tenants: TenantWithPayments[]
@@ -21,8 +24,8 @@ function friendlyError(message: string): string {
   ) {
     return "Couldn't load data. Check your connection and try again."
   }
-  if (lower.includes('archived')) {
-    return "Couldn't load data. Run the latest schema SQL in Supabase (adds the archived column), then retry."
+  if (lower.includes('archived') || lower.includes('expenses')) {
+    return "Couldn't load data. Run the latest schema SQL in Supabase (adds archived + expenses), then retry."
   }
   return message || "Couldn't load data. Check your connection and try again."
 }
@@ -82,18 +85,49 @@ export function useTenantsData() {
         return
       }
 
-      const byTenant = new Map<string, Payment[]>()
+      const { data: expenses, error: expensesError } = await supabase
+        .from('expenses')
+        .select('*')
+        .order('incurred_on', { ascending: false })
+
+      // Expenses are additive — if the table hasn't been migrated yet, keep
+      // tenants/payments working and treat expenses as empty.
+      const expensesMissing =
+        !!expensesError &&
+        (expensesError.message.toLowerCase().includes('expenses') ||
+          expensesError.message.toLowerCase().includes('schema cache') ||
+          expensesError.code === '42P01' ||
+          expensesError.code === 'PGRST205')
+
+      if (expensesError && !expensesMissing) {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: friendlyError(expensesError.message),
+        }))
+        return
+      }
+
+      const paymentsByTenant = new Map<string, Payment[]>()
       for (const p of (payments ?? []) as Payment[]) {
-        const list = byTenant.get(p.tenant_id) ?? []
+        const list = paymentsByTenant.get(p.tenant_id) ?? []
         list.push({ ...p, amount: Number(p.amount) })
-        byTenant.set(p.tenant_id, list)
+        paymentsByTenant.set(p.tenant_id, list)
+      }
+
+      const expensesByTenant = new Map<string, Expense[]>()
+      for (const e of (expensesMissing ? [] : ((expenses ?? []) as Expense[]))) {
+        const list = expensesByTenant.get(e.tenant_id) ?? []
+        list.push({ ...e, amount: Number(e.amount) })
+        expensesByTenant.set(e.tenant_id, list)
       }
 
       const merged: TenantWithPayments[] = ((tenants ?? []) as Tenant[]).map((t) => ({
         ...t,
         monthly_rent: Number(t.monthly_rent),
         archived: Boolean(t.archived),
-        payments: byTenant.get(t.id) ?? [],
+        payments: paymentsByTenant.get(t.id) ?? [],
+        expenses: expensesByTenant.get(t.id) ?? [],
       }))
 
       setState({ tenants: merged, loading: false, error: null })
