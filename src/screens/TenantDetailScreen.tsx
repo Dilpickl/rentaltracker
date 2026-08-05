@@ -6,7 +6,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { formatMoney, formatShortDate, toISODate } from '../lib/dates'
 import { getTenantStatus } from '../lib/status'
 import { supabase } from '../lib/supabase'
-import type { Payment } from '../types'
+import type { Expense, Payment } from '../types'
 import type { TenantWithPayments } from '../lib/useTenantsData'
 
 type Props = {
@@ -43,6 +43,10 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
 
   const status = getTenantStatus(tenant, tenant.payments)
   const history = [...tenant.payments].sort((a, b) => b.paid_on.localeCompare(a.paid_on))
+  const expenses = [...tenant.expenses].sort((a, b) =>
+    b.incurred_on.localeCompare(a.incurred_on),
+  )
+  const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0)
   const backTo = tenant.archived ? '/archived' : '/'
   const backLabel = tenant.archived ? 'Archived' : 'Home'
 
@@ -93,7 +97,7 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
   async function handleDeleteTenant() {
     if (
       !window.confirm(
-        `Delete ${tenant!.name} forever?\n\nThis also deletes their payment history. Prefer “Mark as Moved Out” if you want to keep records.`,
+        `Delete ${tenant!.name} forever?\n\nThis also deletes their payment and expense history. Prefer “Mark as Moved Out” if you want to keep records.`,
       )
     ) {
       return
@@ -125,6 +129,28 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
     setBusy(true)
     setActionError(null)
     const { error } = await supabase.from('payments').delete().eq('id', payment.id)
+    setBusy(false)
+
+    if (error) {
+      setActionError(error.message)
+      return
+    }
+
+    await onChanged()
+  }
+
+  async function handleDeleteExpense(expense: Expense) {
+    if (
+      !window.confirm(
+        `Delete this expense of ${formatMoney(expense.amount)} for “${expense.description}”?\n\nThis cannot be undone.`,
+      )
+    ) {
+      return
+    }
+
+    setBusy(true)
+    setActionError(null)
+    const { error } = await supabase.from('expenses').delete().eq('id', expense.id)
     setBusy(false)
 
     if (error) {
@@ -170,12 +196,20 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
       </div>
 
       {!tenant.archived && (
-        <Link
-          to={`/tenants/${tenant.id}/pay`}
-          className="btn btn--primary btn--block btn--xl"
-        >
-          Mark as Paid
-        </Link>
+        <div className="action-stack">
+          <Link
+            to={`/tenants/${tenant.id}/pay`}
+            className="btn btn--primary btn--block btn--xl"
+          >
+            Mark as Paid
+          </Link>
+          <Link
+            to={`/tenants/${tenant.id}/expenses/new`}
+            className="btn btn--secondary btn--block btn--xl"
+          >
+            Add Expense
+          </Link>
+        </div>
       )}
 
       <section className="history">
@@ -207,6 +241,48 @@ export function TenantDetailScreen({ tenants, loading, onChanged }: Props) {
                     className="btn btn--danger-outline btn--compact"
                     disabled={busy}
                     onClick={() => void handleDeletePayment(p)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="history">
+        <div className="section-title-row">
+          <h2 className="section-title">Expenses</h2>
+          {expenses.length > 0 && (
+            <span className="section-title-meta">Total {formatMoney(expenseTotal)}</span>
+          )}
+        </div>
+        {expenses.length === 0 ? (
+          <p className="muted">No expenses recorded yet.</p>
+        ) : (
+          <ul className="history-list">
+            {expenses.map((e) => (
+              <li key={e.id} className="history-row history-row--actions">
+                <div className="history-row__info">
+                  <div className="history-row__text">
+                    <span className="history-row__date">{formatShortDate(e.incurred_on)}</span>
+                    <span className="history-row__desc">{e.description}</span>
+                  </div>
+                  <span className="history-row__amount">{formatMoney(e.amount)}</span>
+                </div>
+                <div className="history-row__buttons">
+                  <Link
+                    to={`/tenants/${tenant.id}/expenses/${e.id}`}
+                    className="btn btn--secondary btn--compact"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn--danger-outline btn--compact"
+                    disabled={busy}
+                    onClick={() => void handleDeleteExpense(e)}
                   >
                     Delete
                   </button>
